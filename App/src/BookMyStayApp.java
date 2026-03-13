@@ -1,3 +1,5 @@
+import java.util.HashMap;
+
 public class BookMyStayApp {
 
     public static void main(String[] args) {
@@ -6,23 +8,29 @@ public class BookMyStayApp {
         Room doubleRoom = new DoubleRoom();
         Room suite = new SuiteRoom();
 
-        int singleAvailability = 5;
-        int doubleAvailability = 3;
-        int suiteAvailability = 2;
+        RoomInventory inventory = new RoomInventory();
 
-        System.out.println("Hotel Room Availability");
+        System.out.println("Room Details");
         System.out.println();
 
         single.displayDetails();
-        System.out.println("Available: " + singleAvailability);
+        System.out.println("Available: " + inventory.getAvailability(single.roomType));
         System.out.println();
 
         doubleRoom.displayDetails();
-        System.out.println("Available: " + doubleAvailability);
+        System.out.println("Available: " + inventory.getAvailability(doubleRoom.roomType));
         System.out.println();
 
         suite.displayDetails();
-        System.out.println("Available: " + suiteAvailability);
+        System.out.println("Available: " + inventory.getAvailability(suite.roomType));
+        System.out.println();
+
+        System.out.println("Updating availability...");
+        inventory.updateAvailability("Single Room", 4);
+
+        System.out.println();
+        System.out.println("Current Inventory");
+        inventory.displayInventory();
     }
 }
 
@@ -66,5 +74,31 @@ class SuiteRoom extends Room {
 
     public SuiteRoom() {
         super("Suite Room", 3, 50, 300);
+    }
+}
+
+class RoomInventory {
+
+    private HashMap<String, Integer> inventory;
+
+    public RoomInventory() {
+        inventory = new HashMap<>();
+        inventory.put("Single Room", 5);
+        inventory.put("Double Room", 3);
+        inventory.put("Suite Room", 2);
+    }
+
+    public int getAvailability(String roomType) {
+        return inventory.getOrDefault(roomType, 0);
+    }
+
+    public void updateAvailability(String roomType, int count) {
+        inventory.put(roomType, count);
+    }
+
+    public void displayInventory() {
+        for (String roomType : inventory.keySet()) {
+            System.out.println(roomType + " Available: " + inventory.get(roomType));
+        }
     }
 }
