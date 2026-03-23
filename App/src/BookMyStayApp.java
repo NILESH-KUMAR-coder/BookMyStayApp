@@ -1,66 +1,54 @@
+import java.io.*;
 import java.util.*;
 
-class BookingRequest {
-    String guestName;
-    String roomType;
+public class BookMyStayApp {
+    private static final String FILE_NAME = "inventory.txt";
+    private static Map<String, Integer> inventory = new LinkedHashMap<>();
 
-    public BookingRequest(String guestName, String roomType) {
-        this.guestName = guestName;
-        this.roomType = roomType;
-    }
-}
+    public static void main(String[] args) {
+        System.out.println("System Recovery");
+        loadInventory();
 
-class ConcurrentBookingProcessor {
-    private final Map<String, Integer> inventory = new HashMap<>();
-    private final Map<String, Integer> counters = new HashMap<>();
+        displayInventory();
 
-    public ConcurrentBookingProcessor() {
-        inventory.put("Single", 5);
-        inventory.put("Double", 3);
-        inventory.put("Suite", 2);
-        counters.put("Single", 1);
-        counters.put("Double", 1);
-        counters.put("Suite", 1);
+        saveInventory();
     }
 
-    // synchronized ensures thread safety for the Critical Section
-    public synchronized void processBooking(BookingRequest request) {
-        int available = inventory.getOrDefault(request.roomType, 0);
-        if (available > 0) {
-            int currentId = counters.get(request.roomType);
-            System.out.println("Booking confirmed for Guest: " + request.guestName +
-                    ", Room ID: " + request.roomType + "-" + currentId);
+    private static void loadInventory() {
+        File file = new File(FILE_NAME);
+        if (!file.exists()) {
+            System.out.println("No valid inventory data found. Starting fresh.\n");
+            // Default Initial State
+            inventory.put("Single", 5);
+            inventory.put("Double", 3);
+            inventory.put("Suite", 2);
+            return;
+        }
 
-            inventory.put(request.roomType, available - 1);
-            counters.put(request.roomType, currentId + 1);
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(":");
+                inventory.put(parts[0], Integer.parseInt(parts[1]));
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading recovery data. Starting fresh.");
         }
     }
 
-    public void displayInventory() {
-        System.out.println("\nRemaining Inventory:");
-        inventory.forEach((type, count) -> System.out.println(type + ": " + count));
+    private static void saveInventory() {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(FILE_NAME))) {
+            for (Map.Entry<String, Integer> entry : inventory.entrySet()) {
+                writer.println(entry.getKey() + ":" + entry.getValue());
+            }
+            System.out.println("Inventory saved successfully.");
+        } catch (IOException e) {
+            System.out.println("Error saving inventory state.");
+        }
     }
-}
 
-public class BookMyStayApp {
-    public static void main(String[] args) throws InterruptedException {
-        System.out.println("Concurrent Booking Simulation");
-        ConcurrentBookingProcessor processor = new ConcurrentBookingProcessor();
-
-        // Simulate concurrent requests using threads
-        Thread t1 = new Thread(() -> processor.processBooking(new BookingRequest("Om", "Single")));
-        Thread t2 = new Thread(() -> processor.processBooking(new BookingRequest("Shubham", "Double")));
-        Thread t3 = new Thread(() -> processor.processBooking(new BookingRequest("Shreya", "Suite")));
-        Thread t4 = new Thread(() -> processor.processBooking(new BookingRequest("Mohit", "Single")));
-
-        t1.start();
-        t2.start();
-        t3.start();
-        t4.start();
-
-        // Wait for all threads to finish
-        t1.join(); t2.join(); t3.join(); t4.join();
-
-        processor.displayInventory();
+    private static void displayInventory() {
+        System.out.println("Current Inventory:");
+        inventory.forEach((type, count) -> System.out.println(type + ": " + count));
     }
 }
