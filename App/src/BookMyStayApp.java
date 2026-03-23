@@ -1,104 +1,78 @@
-import java.util.HashMap;
+import java.util.*;
 
-public class BookMyStayApp {
+class Room {
+    private String type;
+    private int beds;
+    private int size;
+    private double price;
 
-    public static void main(String[] args) {
-
-        Room single = new SingleRoom();
-        Room doubleRoom = new DoubleRoom();
-        Room suite = new SuiteRoom();
-
-        RoomInventory inventory = new RoomInventory();
-
-        System.out.println("Room Details");
-        System.out.println();
-
-        single.displayDetails();
-        System.out.println("Available: " + inventory.getAvailability(single.roomType));
-        System.out.println();
-
-        doubleRoom.displayDetails();
-        System.out.println("Available: " + inventory.getAvailability(doubleRoom.roomType));
-        System.out.println();
-
-        suite.displayDetails();
-        System.out.println("Available: " + inventory.getAvailability(suite.roomType));
-        System.out.println();
-
-        System.out.println("Updating availability...");
-        inventory.updateAvailability("Single Room", 4);
-
-        System.out.println();
-        System.out.println("Current Inventory");
-        inventory.displayInventory();
-    }
-}
-
-abstract class Room {
-
-    protected String roomType;
-    protected int beds;
-    protected int size;
-    protected double price;
-
-    public Room(String roomType, int beds, int size, double price) {
-        this.roomType = roomType;
+    public Room(String type, int beds, int size, double price) {
+        this.type = type;
         this.beds = beds;
         this.size = size;
         this.price = price;
     }
 
-    public void displayDetails() {
-        System.out.println("Room Type: " + roomType);
-        System.out.println("Beds: " + beds);
-        System.out.println("Size: " + size + " sqm");
-        System.out.println("Price: $" + price);
+    public String getType() { return type; }
+
+    public String toString(int availability) {
+        return type + ":\n" +
+                "Beds: " + beds + "\n" +
+                "Size: " + size + " sqft\n" +
+                "Price per night: " + price + "\n" +
+                "Available: " + availability + "\n";
     }
 }
 
-class SingleRoom extends Room {
+class Inventory {
+    private Map<String, Integer> availability = new LinkedHashMap<>();
 
-    public SingleRoom() {
-        super("Single Room", 1, 20, 100);
+    public void updateInventory(String type, int count) {
+        availability.put(type, count);
+    }
+
+    public Map<String, Integer> getSnapshot() {
+        return new LinkedHashMap<>(availability);
     }
 }
 
-class DoubleRoom extends Room {
+class SearchService {
+    private Inventory inventory;
+    private Map<String, Room> roomCatalog;
 
-    public DoubleRoom() {
-        super("Double Room", 2, 30, 150);
-    }
-}
-
-class SuiteRoom extends Room {
-
-    public SuiteRoom() {
-        super("Suite Room", 3, 50, 300);
-    }
-}
-
-class RoomInventory {
-
-    private HashMap<String, Integer> inventory;
-
-    public RoomInventory() {
-        inventory = new HashMap<>();
-        inventory.put("Single Room", 5);
-        inventory.put("Double Room", 3);
-        inventory.put("Suite Room", 2);
+    public SearchService(Inventory inventory, Map<String, Room> roomCatalog) {
+        this.inventory = inventory;
+        this.roomCatalog = roomCatalog;
     }
 
-    public int getAvailability(String roomType) {
-        return inventory.getOrDefault(roomType, 0);
-    }
+    public void displayAvailableRooms() {
+        System.out.println("Room Search\n");
+        Map<String, Integer> counts = inventory.getSnapshot();
 
-    public void updateAvailability(String roomType, int count) {
-        inventory.put(roomType, count);
-    }
-
-    public void displayInventory() {
-        for (String roomType : inventory.keySet()) {
-            System.out.println(roomType + " Available: " + inventory.get(roomType));
+        for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+            if (entry.getValue() > 0) {
+                Room details = roomCatalog.get(entry.getKey());
+                if (details != null) {
+                    System.out.println(details.toString(entry.getValue()));
+                }
+            }
         }
+    }
+}
+
+public class BookMyStayApp {
+    public static void main(String[] args) {
+        Inventory inventory = new Inventory();
+        inventory.updateInventory("Single Room", 5);
+        inventory.updateInventory("Double Room", 3);
+        inventory.updateInventory("Suite Room", 2);
+
+        Map<String, Room> catalog = new LinkedHashMap<>();
+        catalog.put("Single Room", new Room("Single Room", 1, 250, 1500.0));
+        catalog.put("Double Room", new Room("Double Room", 2, 400, 2500.0));
+        catalog.put("Suite Room", new Room("Suite Room", 3, 750, 5000.0));
+
+        SearchService searchService = new SearchService(inventory, catalog);
+        searchService.displayAvailableRooms();
     }
 }
