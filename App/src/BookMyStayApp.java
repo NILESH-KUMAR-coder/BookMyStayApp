@@ -1,55 +1,66 @@
 import java.util.*;
 
-class BookingException extends Exception {
-    public BookingException(String message) {
-        super(message);
+class BookingRequest {
+    String guestName;
+    String roomType;
+
+    public BookingRequest(String guestName, String roomType) {
+        this.guestName = guestName;
+        this.roomType = roomType;
     }
 }
 
-class CancellationService {
-    private Map<String, Integer> inventory;
-    private Stack<String> allocatedRooms;
+class ConcurrentBookingProcessor {
+    private final Map<String, Integer> inventory = new HashMap<>();
+    private final Map<String, Integer> counters = new HashMap<>();
 
-    public CancellationService(Map<String, Integer> inventory, Stack<String> allocatedRooms) {
-        this.inventory = inventory;
-        this.allocatedRooms = allocatedRooms;
+    public ConcurrentBookingProcessor() {
+        inventory.put("Single", 5);
+        inventory.put("Double", 3);
+        inventory.put("Suite", 2);
+        counters.put("Single", 1);
+        counters.put("Double", 1);
+        counters.put("Suite", 1);
     }
 
-    public void cancelLastBooking(String roomType) throws BookingException {
-        System.out.println("Booking Cancellation & Inventory Rollback");
+    // synchronized ensures thread safety for the Critical Section
+    public synchronized void processBooking(BookingRequest request) {
+        int available = inventory.getOrDefault(request.roomType, 0);
+        if (available > 0) {
+            int currentId = counters.get(request.roomType);
+            System.out.println("Booking confirmed for Guest: " + request.guestName +
+                    ", Room ID: " + request.roomType + "-" + currentId);
 
-        if (allocatedRooms.isEmpty()) {
-            throw new BookingException("Cancellation failed: No active reservations found.");
+            inventory.put(request.roomType, available - 1);
+            counters.put(request.roomType, currentId + 1);
         }
+    }
 
-        String releasedRoomId = allocatedRooms.pop();
-
-        if (inventory.containsKey(roomType)) {
-            inventory.put(roomType, inventory.get(roomType) + 1);
-
-            System.out.println("Cancellation successful.");
-            System.out.println("Released Room ID: " + releasedRoomId);
-            System.out.println("Inventory rolled back for Type: " + roomType);
-            System.out.println("Current Inventory for " + roomType + ": " + inventory.get(roomType));
-        }
+    public void displayInventory() {
+        System.out.println("\nRemaining Inventory:");
+        inventory.forEach((type, count) -> System.out.println(type + ": " + count));
     }
 }
 
 public class BookMyStayApp {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
+        System.out.println("Concurrent Booking Simulation");
+        ConcurrentBookingProcessor processor = new ConcurrentBookingProcessor();
 
-        Map<String, Integer> inventory = new HashMap<>();
-        inventory.put("Single", 4);
+        // Simulate concurrent requests using threads
+        Thread t1 = new Thread(() -> processor.processBooking(new BookingRequest("Om", "Single")));
+        Thread t2 = new Thread(() -> processor.processBooking(new BookingRequest("Shubham", "Double")));
+        Thread t3 = new Thread(() -> processor.processBooking(new BookingRequest("Shreya", "Suite")));
+        Thread t4 = new Thread(() -> processor.processBooking(new BookingRequest("Mohit", "Single")));
 
-        Stack<String> allocatedRooms = new Stack<>();
-        allocatedRooms.push("Single-1");
+        t1.start();
+        t2.start();
+        t3.start();
+        t4.start();
 
-        CancellationService cancellationService = new CancellationService(inventory, allocatedRooms);
+        // Wait for all threads to finish
+        t1.join(); t2.join(); t3.join(); t4.join();
 
-        try {
-            cancellationService.cancelLastBooking("Single");
-        } catch (BookingException e) {
-            System.out.println(e.getMessage());
-        }
+        processor.displayInventory();
     }
 }
