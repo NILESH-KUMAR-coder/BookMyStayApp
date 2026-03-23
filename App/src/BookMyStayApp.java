@@ -1,71 +1,51 @@
 import java.util.*;
 
-class BookingRequest {
-    private String guestName;
-    private String roomType;
+class Service {
+    private String name;
+    private double price;
 
-    public BookingRequest(String guestName, String roomType) {
-        this.guestName = guestName;
-        this.roomType = roomType;
+    public Service(String name, double price) {
+        this.name = name;
+        this.price = price;
     }
 
-    public String getGuestName() { return guestName; }
-    public String getRoomType() { return roomType; }
+    public double getPrice() { return price; }
 }
 
-class AllocationService {
-    private Map<String, Integer> inventory = new HashMap<>();
-    private Set<String> allocatedRoomIds = new HashSet<>();
-    private Map<String, Integer> roomTypeCounters = new HashMap<>();
+class AddOnServiceManager {
+    private Map<String, List<Service>> selections = new HashMap<>();
 
-    public void setInventory(String type, int count) {
-        inventory.put(type, count);
-        roomTypeCounters.put(type, 1);
+    public void addService(String reservationId, Service service) {
+        selections.computeIfAbsent(reservationId, k -> new ArrayList<>()).add(service);
     }
 
-    public void processQueue(Queue<BookingRequest> queue) {
-        System.out.println("Room Allocation Processing");
+    public void displayAddOns(String reservationId) {
+        System.out.println("Add-On Service Selection");
+        System.out.println("Reservation ID: " + reservationId);
 
-        while (!queue.isEmpty()) {
-            BookingRequest request = queue.poll();
-            String type = request.getRoomType();
+        double totalCost = 0;
+        List<Service> services = selections.getOrDefault(reservationId, new ArrayList<>());
 
-            if (inventory.containsKey(type) && inventory.get(type) > 0) {
-                // Generate Unique Room ID (e.g., Single-1)
-                int currentNumber = roomTypeCounters.get(type);
-                String roomId = type + "-" + currentNumber;
-
-                // Uniqueness Enforcement using Set
-                if (!allocatedRoomIds.contains(roomId)) {
-                    allocatedRoomIds.add(roomId);
-
-                    // Inventory Synchronization (Decrement)
-                    inventory.put(type, inventory.get(type) - 1);
-                    roomTypeCounters.put(type, currentNumber + 1);
-
-                    System.out.println("Booking confirmed for Guest: " + request.getGuestName() +
-                            ", Room ID: " + roomId);
-                }
-            }
+        for (Service s : services) {
+            totalCost += s.getPrice();
         }
+
+        System.out.println("Total Add-On Cost: " + totalCost);
     }
 }
 
 public class BookMyStayApp {
     public static void main(String[] args) {
-        // Setup Inventory
-        AllocationService allocationService = new AllocationService();
-        allocationService.setInventory("Single", 5);
-        allocationService.setInventory("Double", 3);
-        allocationService.setInventory("Suite", 2);
+        AddOnServiceManager manager = new AddOnServiceManager();
 
-        // Setup Request Queue (FIFO)
-        Queue<BookingRequest> queue = new LinkedList<>();
-        queue.add(new BookingRequest("Om", "Single"));
-        queue.add(new BookingRequest("Shubham", "Single"));
-        queue.add(new BookingRequest("Shreya", "Suite"));
+        // Simulating selection for Reservation ID: Single-1
+        String resId = "Single-1";
 
-        // Process Allocation
-        allocationService.processQueue(queue);
+        // Guest selects Breakfast (500) and Spa (1000)
+        manager.addService(resId, new Service("Breakfast", 500.0));
+        manager.addService(resId, new Service("Spa", 1000.0));
+
+        // Display Output
+        manager.displayAddOns(resId);
     }
 }
