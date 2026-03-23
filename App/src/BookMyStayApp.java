@@ -6,37 +6,50 @@ class BookingException extends Exception {
     }
 }
 
-class BookingValidator {
-    private final List<String> validTypes = Arrays.asList("Single", "Double", "Suite");
+class CancellationService {
+    private Map<String, Integer> inventory;
+    private Stack<String> allocatedRooms;
 
-    public void validateRoomType(String roomType) throws BookingException {
-        // Checking against specific list to trigger the "Invalid room type" error
-        if (!validTypes.contains(roomType)) {
-            throw new BookingException("Booking failed: Invalid room type selected.");
+    public CancellationService(Map<String, Integer> inventory, Stack<String> allocatedRooms) {
+        this.inventory = inventory;
+        this.allocatedRooms = allocatedRooms;
+    }
+
+    public void cancelLastBooking(String roomType) throws BookingException {
+        System.out.println("Booking Cancellation & Inventory Rollback");
+
+        if (allocatedRooms.isEmpty()) {
+            throw new BookingException("Cancellation failed: No active reservations found.");
+        }
+
+        String releasedRoomId = allocatedRooms.pop();
+
+        if (inventory.containsKey(roomType)) {
+            inventory.put(roomType, inventory.get(roomType) + 1);
+
+            System.out.println("Cancellation successful.");
+            System.out.println("Released Room ID: " + releasedRoomId);
+            System.out.println("Inventory rolled back for Type: " + roomType);
+            System.out.println("Current Inventory for " + roomType + ": " + inventory.get(roomType));
         }
     }
 }
 
 public class BookMyStayApp {
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        BookingValidator validator = new BookingValidator();
 
-        System.out.println("Booking Validation");
+        Map<String, Integer> inventory = new HashMap<>();
+        inventory.put("Single", 4);
 
-        System.out.print("Enter guest name: ");
-        String guestName = scanner.nextLine();
+        Stack<String> allocatedRooms = new Stack<>();
+        allocatedRooms.push("Single-1");
 
-        System.out.print("Enter room type (Single/Double/Suite): ");
-        String roomType = scanner.nextLine();
+        CancellationService cancellationService = new CancellationService(inventory, allocatedRooms);
 
         try {
-            validator.validateRoomType(roomType);
-            System.out.println("Booking confirmed for " + guestName);
+            cancellationService.cancelLastBooking("Single");
         } catch (BookingException e) {
             System.out.println(e.getMessage());
-        } finally {
-            scanner.close();
         }
     }
 }
